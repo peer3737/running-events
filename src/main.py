@@ -33,13 +33,14 @@ def lambda_handler(event, context):
     }
     for event in events:
         if events[event]['check']:
-            log.info
+            log.info(event)
             response = requests.get(events[event]['url'])
             if events[event]['open_text'] in response.text:
                 payload = {
                     "to": os.environ['MAIL_CONTACT'],
-                    "subject": "JSON files not created and uploaded to S3",
-                    "content": f"Inschrijving voor {event} is geopend"
+                    "from": os.environ['MAIL_SENDER'],
+                    "subject": f"Inschrijving voor {event} is geopend",
+                    "content": f"Inschrijving voor {event} is geopend. Ga naar {events[event]['url']}"
                 }
 
                 lambda_client.invoke(

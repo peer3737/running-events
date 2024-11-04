@@ -1,1 +1,4 @@
 .idea/
+test/
+supporting/__pycache__/__init__.cpython-311.pyc
+supporting/__pycache__/aws.cpython-311.pyc

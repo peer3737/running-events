@@ -27,6 +27,7 @@ def lambda_handler(event, context):
         log.info(event_name)
         response = requests.get(event['url'])
         if event['open_text'] in response.text:
+            log.info(f"Inschrijving {event_name} is geopend")
             payload = {
                 "to": os.environ['MAIL_CONTACT'],
                 "from": os.environ['MAIL_SENDER'],

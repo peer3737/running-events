@@ -32,6 +32,7 @@ def lambda_handler(event, context):
             if event['open_text'] in response.text:
                 log.info(f"Inschrijving {event_name} is geopend")
                 for sub in subs:
+                    print(sub)
                     payload = {
                         "to": sub['S'],
                         "from": os.environ['MAIL_SENDER'],

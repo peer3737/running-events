@@ -18,7 +18,7 @@ handler.setFormatter(formatter)
 log.addHandler(handler)
 
 # SES client
-ses = boto3.client('ses', region_name='eu-west-1')  # pas regio aan indien nodig
+ses = boto3.client('ses', region_name='eu-central-1')  # pas regio aan indien nodig
 
 def send_mail(to_address, subject, body_text, body_html):
     """Verstuur een e-mail via Amazon SES, met tekst en HTML versie"""

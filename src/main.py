@@ -1,44 +1,43 @@
 import requests
 import os
 import json
-import boto3
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from supporting import aws
 
 # Logging setup
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 log = logging.getLogger()
 log.setLevel("INFO")
-logging.getLogger("boto3").setLevel(logging.WARNING)
-logging.getLogger("botocore").setLevel(logging.WARNING)
 for handler in log.handlers:
     log.removeHandler(handler)
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 log.addHandler(handler)
 
-# SES client
-ses = boto3.client('ses', region_name='eu-central-1')  # pas regio aan indien nodig
-
-def send_mail(to_address, subject, body_text, body_html):
-    """Verstuur een e-mail via Amazon SES, met tekst en HTML versie"""
+def send_gmail(to_address, subject, body_text, body_html):
+    """Verstuur e-mail via Gmail SMTP (App Password)"""
     try:
-        response = ses.send_email(
-            Source=os.environ['MAIL_SENDER'],  # geverifieerd e-mail adres of domein in SES
-            Destination={'ToAddresses': [to_address]},
-            Message={
-                'Subject': {'Data': subject},
-                'Body': {
-                    'Text': {'Data': body_text},
-                    'Html': {'Data': body_html}
-                }
-            }
-        )
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = os.environ['MAIL_SENDER']
+        msg['To'] = to_address
+
+        # Voeg text en HTML toe
+        part1 = MIMEText(body_text, 'plain')
+        part2 = MIMEText(body_html, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+
+        # Verstuur via Gmail SMTP
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(os.environ['MAIL_SENDER'], os.environ['GMAIL_PASSWORD'])
+            server.sendmail(os.environ['MAIL_SENDER'], to_address, msg.as_string())
         log.info(f"E-mail verzonden naar {to_address}")
-        return response
     except Exception as e:
         log.error(f"Fout bij verzenden naar {to_address}: {e}")
-        return None
 
 def lambda_handler(event, context):
     # Ophalen van events uit DynamoDB
@@ -52,24 +51,23 @@ def lambda_handler(event, context):
             subs = event_item['subs']
             log.info(f"Controle voor event: {event_name}")
 
-            # Check of inschrijving open is
+            # Check of inschrijving open is (case-insensitive)
             try:
                 response = requests.get(event_item['url'], timeout=10)
                 if event_item['open_text'].lower() in response.text.lower():
-                    log.info(f"Inschrijving {event_name} is MOGELIJK geopend")
+                    log.info(f"Inschrijving {event_name} is geopend")
                     for sub in subs:
-                        subject = f"Inschrijving voor {event_name} is MOGELIJK geopend"
-                        body_text = f"Inschrijving voor {event_name} is geopend. De inschrijfpagina is relevant gewijzigd. Ga naar {event_item['url']}"
+                        subject = f"Inschrijving voor {event_name} is geopend"
+                        body_text = f"Inschrijving voor {event_name} is geopend. Ga naar {event_item['url']}"
                         body_html = f"""
                         <html>
                         <body>
-                            <p>Inschrijving voor <b>{event_name}</b> is MOGELIJK geopend!</p>
-                            <p>De inschrijfpagina is relevant gewijzigd</p>
+                            <p>Inschrijving voor <b>{event_name}</b> is geopend!</p>
                             <p>Ga naar <a href="{event_item['url']}">{event_item['url']}</a> om je in te schrijven.</p>
                         </body>
                         </html>
                         """
-                        send_mail(sub, subject, body_text, body_html)
+                        send_gmail(sub, subject, body_text, body_html)
 
                     # Update DynamoDB om check uit te zetten
                     aws.dynamo_db_update('events', item_id=event_id, attribute='check', value=False)

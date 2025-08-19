@@ -33,7 +33,7 @@ def send_gmail(to_address, subject, body_text, body_html):
 
         # Verstuur via Gmail SMTP
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(os.environ['MAIL_SENDER'], os.environ['GMAIL_PASSWORD'])
+            server.login(os.environ['MAIL_SENDER'], "lede yepw pgeb gmha")
             server.sendmail(os.environ['MAIL_SENDER'], to_address, msg.as_string())
         log.info(f"E-mail verzonden naar {to_address}")
     except Exception as e:
@@ -55,14 +55,15 @@ def lambda_handler(event, context):
             try:
                 response = requests.get(event_item['url'], timeout=10)
                 if event_item['open_text'].lower() in response.text.lower():
-                    log.info(f"Inschrijving {event_name} is geopend")
+                    log.info(f"Inschrijving {event_name} is MOGELIJK geopend")
                     for sub in subs:
-                        subject = f"Inschrijving voor {event_name} is geopend"
-                        body_text = f"Inschrijving voor {event_name} is geopend. Ga naar {event_item['url']}"
+                        subject = f"Inschrijving voor {event_name} is MOGELIJK geopend"
+                        body_text = f"Inschrijving voor {event_name} is MOGELIJK geopend. Er is iets relevants gewijzigd aan de inschrijfpagina. Ga naar {event_item['url']}"
                         body_html = f"""
                         <html>
                         <body>
-                            <p>Inschrijving voor <b>{event_name}</b> is geopend!</p>
+                            <p>Inschrijving voor <b>{event_name}</b> is MOGELIJK geopend!</p>
+                            <p>Er is iets relevants gewijzigd aan de inschrijfpagina</p>
                             <p>Ga naar <a href="{event_item['url']}">{event_item['url']}</a> om je in te schrijven.</p>
                         </body>
                         </html>

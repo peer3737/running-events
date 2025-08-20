@@ -57,7 +57,7 @@ def lambda_handler(event, context):
             # Check of inschrijving open is (case-insensitive)
             try:
                 response = requests.get(event_item['url'], timeout=10)
-                mode = os.environ['MAIL_SENDER']
+                mode = os.environ['MODE']
                 if event_item['open_text'].lower() in response.text.lower():
                     log.info(f"Inschrijving {event_name} is MOGELIJK geopend")
                     for sub in subs:

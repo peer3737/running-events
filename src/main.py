@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from supporting import aws
 
+
 # Logging setup
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
 log = logging.getLogger()
@@ -16,6 +17,7 @@ for handler in log.handlers:
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 log.addHandler(handler)
+
 
 def send_gmail(to_address, subject, body_text, body_html):
     """Verstuur e-mail via Gmail SMTP (App Password)"""
@@ -39,6 +41,7 @@ def send_gmail(to_address, subject, body_text, body_html):
     except Exception as e:
         log.error(f"Fout bij verzenden naar {to_address}: {e}")
 
+
 def lambda_handler(event, context):
     # Ophalen van events uit DynamoDB
     events = aws.dynamodb_query('events')
@@ -54,20 +57,32 @@ def lambda_handler(event, context):
             # Check of inschrijving open is (case-insensitive)
             try:
                 response = requests.get(event_item['url'], timeout=10)
+                mode = os.environ['MAIL_SENDER']
                 if event_item['open_text'].lower() in response.text.lower():
                     log.info(f"Inschrijving {event_name} is MOGELIJK geopend")
                     for sub in subs:
-                        subject = f"Inschrijving voor {event_name} is MOGELIJK geopend"
-                        body_text = f"Inschrijving voor {event_name} is MOGELIJK geopend. Er is iets relevants gewijzigd aan de inschrijfpagina. Ga naar {event_item['url']}"
-                        body_html = f"""
-                        <html>
-                        <body>
-                            <p>Inschrijving voor <b>{event_name}</b> is MOGELIJK geopend!</p>
-                            <p>Er is iets relevants gewijzigd aan de inschrijfpagina</p>
-                            <p>Ga naar <a href="{event_item['url']}">{event_item['url']}</a> om je in te schrijven.</p>
-                        </body>
-                        </html>
-                        """
+                        if mode == 'test':
+                            subject = "testmail"
+                            body_text = "Deze mail is een test ter controle"
+                            body_html = f"""
+                            <html>
+                            <body>
+                            <p>Deze mail is een test ter controle</p>
+                            </body>
+                            </html>
+                            """
+                        else:
+                            subject = f"Inschrijving voor {event_name} is MOGELIJK geopend"
+                            body_text = f"Inschrijving voor {event_name} is MOGELIJK geopend. Er is iets relevants gewijzigd aan de inschrijfpagina. Ga naar {event_item['url']}"
+                            body_html = f"""
+                            <html>
+                            <body>
+                                <p>Inschrijving voor <b>{event_name}</b> is MOGELIJK geopend!</p>
+                                <p>Er is iets relevants gewijzigd aan de inschrijfpagina</p>
+                                <p>Ga naar <a href="{event_item['url']}">{event_item['url']}</a> om je in te schrijven.</p>
+                            </body>
+                            </html>
+                            """
                         send_gmail(sub, subject, body_text, body_html)
 
                     # Update DynamoDB om check uit te zetten
